@@ -1,65 +1,145 @@
-const { createToken } = require('./Base/toke'); // Generador del token
-const { descargarYRenombrarConPrefijo } = require('../descargas/descargas'); // Modificada
+const { createToken } = require('./Base/toke');
+const { descargarYRenombrarConPrefijo } = require('../descargas/descargas');
+
+function obtenerNombrePorEPS(eps, nombreBase) {
+  const nombresPorEPS = {
+    NUEVA_EPS: {
+      historia: "HistoriaNuevaEPS",
+      anexo: "AnexoNuevaEPS",
+      epicrisis: "EpicrisisNuevaEPS",
+      evolucion: "EvolucionNuevaEPS",
+      enfermeria: "EnfermeriaNuevaEPS",
+      admisiones: "AdmisionesNuevaEPS",
+      prefacturas: "PrefacturasNuevaEPS",
+      ordenmedica: "OrdenMedicaNuevaEPS",
+    },
+    OTRA_EPS: {
+      historia: "HistoriaOtraEPS",
+      anexo: "AnexoOtraEPS",
+      epicrisis: "EpicrisisOtraEPS",
+      evolucion: "EvolucionOtraEPS",
+      enfermeria: "EnfermeriaOtraEPS",
+      admisiones: "AdmisionesOtraEPS",
+      prefacturas: "PrefacturasOtraEPS",
+      ordenmedica: "OrdenMedicaOtraEPS",
+    }
+    // Puedes agregar más EPS y sus nombres aquí
+  };
+
+  const epsNombres = nombresPorEPS[eps] || {};
+  // Siempre convierte a minúsculas para buscar
+  return epsNombres[nombreBase.toLowerCase()] || nombreBase;
+}
 
 async function Hs_Anx(req, res) {
   try {
-    const { institucionId, idUser, nombreCarpeta } = req.query;
+    const { institucionId, idUser, nombreCarpeta, nombreArchivo, eps } = req.query;
 
-    if (!institucionId) return res.status(400).send('❌ Parámetro institucionId es requerido');
-    if (!idUser) return res.status(400).send('❌ Parámetro idUser es requerido');
-    if (!nombreCarpeta) return res.status(400).send('❌ Parámetro nombreCarpeta  es requerido'); // Verificar que se envíe el nombreCarpeta
+    const missingParams = [];
+    if (!institucionId) missingParams.push('institucionId');
+    if (!idUser) missingParams.push('idUser');
+    if (!nombreCarpeta) missingParams.push('nombreCarpeta');
+    if (!nombreArchivo) missingParams.push('nombreArchivo');
+    if (!eps) missingParams.push('eps');  // ahora eps también es requerido
+    
+    if (missingParams.length > 0) {
+      return res.status(400).send(`❌ Parámetros requeridos faltantes: ${missingParams.join(', ')}`);
+    }
 
     const reportMapping = [
-      { param: 'idsHistorias', report: 'ListadoHistoriasClinicasDetallado3' },
-      { param: 'idAnexosDos', report: 'ListadoanexoDosDetallado' },
-      { param: 'idEgresos', report: 'ListadoEpicrisis' },
-      { param: 'idsEvoluciones', report: 'ListadoEvolucionDestallado' },
-      { param: 'idsNotasEnfermeria', report: 'ListadoNotasEnfermeriaDestallado' },
-      { param: 'idsAdmisiones', report: 'ListadoAdmisionesDetallado' },
-      { param: 'idAdmisiones', report: 'ListadoPrefacturasDetallado' },
-      { param: 'idsOrdenMedicas', report: 'ListadoOrdenMedicasDestallado' }
+      { param: 'idsHistorias', report: 'ListadoHistoriasClinicasDetallado3', nombre: "historia" },
+      { param: 'idAnexosDos', report: 'ListadoanexoDosDetallado', nombre: "anexo" },
+      { param: 'idEgresos', report: 'ListadoEpicrisis', nombre: "epicrisis" },
+      { param: 'idsEvoluciones', report: 'ListadoEvolucionDestallado', nombre: "evolucion" },
+      { param: 'idsNotasEnfermeria', report: 'ListadoNotasEnfermeriaDestallado', nombre: "enfermeria" },
+      { param: 'idsAdmisiones', report: 'ListadoAdmisionesDetallado', nombre: "admisiones" },
+      { param: 'idAdmisiones', report: 'ListadoPrefacturasDetallado', nombre: "prefacturas" },
+      { param: 'idsOrdenMedicas', report: 'ListadoOrdenMedicasDestallado', nombre: "ordenmedica" }
     ];
 
     const resultados = [];
+    let hasValidParams = false;
 
-    // Buscar los parámetros presentes y procesarlos
-    for (const { param, report } of reportMapping) {
+    for (const { param, report, nombre } of reportMapping) {
       if (req.query[param]) {
+        hasValidParams = true;
         const ids = req.query[param].split(',').map(id => id.trim()).filter(Boolean);
+
+        // Obtener nombre ajustado según EPS
+        const nombreAUsar = obtenerNombrePorEPS(eps, nombre);
+
         for (const id of ids) {
           const token = createToken(report, institucionId, 83, idUser);
           const modulo = getModulo(report);
-          const baseUrl = 'https://reportes.saludplus.co/view.aspx';
-          const url = `${baseUrl}?modulo=${modulo}&reporte=${report}&render=pdf&hideTool=true&environment=1&userId=${idUser}&${param}=${encodeURIComponent(id)}&token=${token}`;
-
-          const nombreArchivo = `${report}_${id}.pdf`;
+          const urlParams = new URLSearchParams({
+            modulo,
+            reporte: report,
+            render: 'pdf',
+            hideTool: 'true',
+            environment: '1',
+            userId: idUser,
+            [param]: id,
+            token
+          });
+          const url = `https://reportes.saludplus.co/view.aspx?${urlParams.toString()}`;
+          const nombreArchivoCompleto = `${nombreAUsar}-${nombreArchivo}.pdf`;
 
           try {
-            const rutaGuardada = await descargarYRenombrarConPrefijo(nombreArchivo, url, report, nombreCarpeta);
-            resultados.push({ id, archivo: rutaGuardada, status: 'descargado' });
+            const rutaGuardada = await descargarYRenombrarConPrefijo(
+              nombreArchivoCompleto,
+              url,
+              report,
+              nombreCarpeta
+            );
+            resultados.push({
+              id,
+              reporte: report,
+              ruta: rutaGuardada,
+              nombreArchivo: nombreArchivoCompleto,
+              status: 'success'
+            });
           } catch (err) {
-            resultados.push({ id, error: err.message });
+            resultados.push({
+              id,
+              reporte: report,
+              error: err.message,
+              nombreArchivo: nombreArchivoCompleto,
+              status: 'error'
+            });
           }
         }
       }
     }
 
-    if (resultados.length === 0) {
+    if (!hasValidParams) {
       return res.status(400).send('❌ No se recibió ningún parámetro válido para generar reporte');
     }
 
     return res.json({
-      mensaje: '✅ Archivos descargados correctamente',
-      archivos: resultados
+      success: resultados.every(r => r.status === 'success'),
+      message: resultados.some(r => r.status === 'error')
+        ? 'Algunos archivos no se pudieron descargar'
+        : '✅ Todos los archivos descargados correctamente',
+      resultados,
+      metadata: {
+        nombreBase: nombreArchivo,
+        carpetaDestino: nombreCarpeta,
+        eps,
+        total: resultados.length,
+        exitosos: resultados.filter(r => r.status === 'success').length,
+        fallidos: resultados.filter(r => r.status === 'error').length
+      }
     });
 
   } catch (error) {
     console.error('🔥 Error en Hs_Anx:', error);
-    res.status(500).send('❌ Error interno del servidor');
+    res.status(500).json({
+      error: '❌ Error interno del servidor',
+      detalle: error.message
+    });
   }
 }
 
-// Módulo según el reporte
 function getModulo(reportName) {
   const moduloMapping = {
     ListadoHistoriasClinicasDetallado3: 'HistoriasClinicas',
@@ -69,7 +149,6 @@ function getModulo(reportName) {
     ListadoNotasEnfermeriaDestallado: 'Asistencial',
     ListadoAdmisionesDetallado: 'Facturacion',
     ListadoPrefacturasDetallado: 'Facturacion',
-    ListadoPrescripcionMedicamentosDetallado: 'Asistencial',
     ListadoOrdenMedicasDestallado: 'Asistencial'
   };
   return moduloMapping[reportName] || 'Asistencial';

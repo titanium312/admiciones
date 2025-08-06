@@ -45,6 +45,7 @@ const procesarAdmisiones = async (req, res) => {
       const admisionData = {
         id_admision: null,
         id_historia: null,
+        paciente: null,
         evoluciones: [],
         notas_enfermeria: [],
         ordenes_medicas: [],
@@ -54,19 +55,32 @@ const procesarAdmisiones = async (req, res) => {
       };
 
       try {
-        // Obtener id_admision
+        // Obtener id_admision y fk_paciente
         const resultAdm = await pool.request()
           .input('id_institucion', sql.Int, id_institucion)
           .input('num_admision', sql.Int, num)
           .query(`
-            SELECT TOP 1 id_admision 
+            SELECT TOP 1 id_admision, fk_paciente 
             FROM facturacion_admisiones 
             WHERE fk_institucion = @id_institucion AND numero_admision = @num_admision
           `);
 
         if (resultAdm.recordset.length > 0) {
-          const id_admision = resultAdm.recordset[0].id_admision;
+          const { id_admision, fk_paciente } = resultAdm.recordset[0];
           admisionData.id_admision = id_admision;
+
+          // Obtener datos del paciente
+          const resultPaciente = await pool.request()
+            .input('fk_paciente', sql.Int, fk_paciente)
+            .query(`
+              SELECT tipo_documento_paciente, documento_paciente, nombre1_paciente 
+              FROM pacientes 
+              WHERE id_paciente = @fk_paciente
+            `);
+
+          if (resultPaciente.recordset.length > 0) {
+            admisionData.paciente = resultPaciente.recordset[0];
+          }
 
           // Obtener id_historia
           const resultHist = await pool.request()
@@ -90,11 +104,16 @@ const procesarAdmisiones = async (req, res) => {
               resultAnexo2,
               resultFacturas
             ] = await Promise.all([
-              pool.request().input('id_historia', sql.Int, id_historia).query(`SELECT id_nota_enfermeria FROM notas_enfermeria WHERE fk_historia = @id_historia`),
-              pool.request().input('id_historia', sql.Int, id_historia).query(`SELECT id_orden_medica FROM ordenes_medicas WHERE fk_historia = @id_historia`),
-              pool.request().input('id_historia', sql.Int, id_historia).query(`SELECT id_egreso_historia FROM egresos_historia WHERE fk_historia = @id_historia`),
-              pool.request().input('id_admision', sql.Int, id_admision).query(`SELECT id_evolucion FROM evoluciones WHERE fk_admision = @id_admision`),
-              pool.request().input('id_admision', sql.Int, id_admision).query(`SELECT id_anexo_tecnico_dos FROM anexoDos WHERE fk_admision = @id_admision`),
+              pool.request().input('id_historia', sql.Int, id_historia)
+                .query(`SELECT id_nota_enfermeria FROM notas_enfermeria WHERE fk_historia = @id_historia`),
+              pool.request().input('id_historia', sql.Int, id_historia)
+                .query(`SELECT id_orden_medica FROM ordenes_medicas WHERE fk_historia = @id_historia`),
+              pool.request().input('id_historia', sql.Int, id_historia)
+                .query(`SELECT id_egreso_historia FROM egresos_historia WHERE fk_historia = @id_historia`),
+              pool.request().input('id_admision', sql.Int, id_admision)
+                .query(`SELECT id_evolucion FROM evoluciones WHERE fk_admision = @id_admision`),
+              pool.request().input('id_admision', sql.Int, id_admision)
+                .query(`SELECT id_anexo_tecnico_dos FROM anexoDos WHERE fk_admision = @id_admision`),
               pool.request()
                 .input('id_institucion', sql.Int, id_institucion)
                 .input('id_admision', sql.Int, id_admision)
@@ -112,12 +131,14 @@ const procesarAdmisiones = async (req, res) => {
             admisionData.evoluciones = resultEvoluciones.recordset.map(r => r.id_evolucion);
             admisionData.anexo2 = resultAnexo2.recordset.map(r => r.id_anexo_tecnico_dos);
             admisionData.facturas = resultFacturas.recordset.map(r => r.id_factura);
-
-            resultados[num] = admisionData;
           }
+
+          resultados[num] = admisionData;
+        } else {
+          resultados[num] = { error: 'Admisión no encontrada' };
         }
       } catch (error) {
-        console.error(`Error en admisión ${num}: ${error.message}`);
+        console.error(`Error en admisión ${num}:`, error.message);
         resultados[num] = { error: error.message };
       }
     }
@@ -129,6 +150,7 @@ const procesarAdmisiones = async (req, res) => {
     res.status(500).json({ error: 'Error de conexión con la base de datos' });
   }
 };
+
 
 
 
