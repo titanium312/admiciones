@@ -2,211 +2,7 @@ import { LitElement, html, css } from 'lit';
 
 class DescargarArchivos extends LitElement {
   static styles = css`
-    :host {
-      display: block;
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 1rem auto;
-      padding: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f9f9f9;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    h1 {
-      font-size: 1.5rem;
-      color: #333;
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-    
-    input, select {
-      padding: 0.5rem;
-      font-size: 1rem;
-      margin: 0.25rem 0;
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    
-    .button-group {
-      margin-top: 1rem;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 0.95rem;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background: #1976d2;
-      color: white;
-      transition: 0.3s;
-      flex: 1;
-      min-width: 120px;
-    }
-    
-    button:hover:not(:disabled) {
-      opacity: 0.9;
-      transform: translateY(-1px);
-    }
-    
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .reset-btn {
-      background: #9e9e9e;
-    }
-    
-    .status {
-      margin: 1rem 0;
-      padding: 0.75rem;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    
-    .status.success {
-      background: #e8f5e9;
-      color: #2e7d32;
-      border-left: 4px solid #2e7d32;
-    }
-    
-    .status.error {
-      background: #ffebee;
-      color: #c62828;
-      border-left: 4px solid #c62828;
-    }
-    
-    .paciente-info {
-      margin-top: 1rem;
-      padding: 1rem;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      background: #fff;
-    }
-    
-    .documentos-container {
-      margin-top: 1rem;
-      background: #fff;
-      padding: 1rem;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
-    }
-    
-    .documento-item {
-      display: flex;
-      align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #eee;
-    }
-    
-    .documento-item label {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      cursor: pointer;
-    }
-    
-    .documento-checkbox {
-      margin-right: 0.75rem;
-    }
-    
-    .documento-info {
-      flex-grow: 1;
-    }
-    
-    .documento-btn {
-      background: #388e3c;
-      margin-left: 0.5rem;
-    }
-    
-    .error-input {
-      border: 2px solid #ffcdd2;
-    }
-    
-    .loader {
-      margin: 1rem 0;
-      color: #1976d2;
-      font-weight: bold;
-      text-align: center;
-    }
-    
-    .confirm-dialog {
-      margin: 1rem 0;
-      padding: 1rem;
-      background: #fff8e1;
-      border: 1px solid #ffd54f;
-      border-radius: 4px;
-    }
-    
-    .confirm-dialog p {
-      margin: 0 0 1rem 0;
-      font-weight: bold;
-    }
-    
-    .confirm-options {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    
-    .confirm-options button {
-      flex: 1;
-    }
-    
-    .option-delete {
-      background: #d32f2f;
-    }
-    
-    .option-keep {
-      background: #388e3c;
-    }
-    
-    .option-cancel {
-      background: #616161;
-    }
-    
-    .select-all {
-      margin: 0.5rem 0;
-      display: flex;
-      align-items: center;
-    }
-    
-    .select-all label {
-      margin-left: 0.5rem;
-      cursor: pointer;
-    }
-    
-    details {
-      margin-top: 1rem;
-      background: #fff;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
-    }
-    
-    summary {
-      font-weight: bold;
-      cursor: pointer;
-      outline: none;
-    }
-    
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-size: 0.85rem;
-      background: #f5f5f5;
-      padding: 1rem;
-      border-radius: 4px;
-      overflow-x: auto;
-    }
+
   `;
 
   static properties = {
@@ -525,20 +321,61 @@ class DescargarArchivos extends LitElement {
     }
   }
 
-  descargarDocumento(id) {
-    const documento = this.documentos.find(doc => doc.id === id);
-    if (!documento) return;
+descargarDocumento(id) {
+  const documento = this.documentos.find(doc => doc.id === id);
+  if (!documento) return;
 
-    const params = new URLSearchParams({
-      idDocumento: id,
-      tipoDocumento: documento.tipo,
-      nombreArchiv: `${documento.tipo}_${id}`,
-      nombreCarpeta: this.carpetaNombre
-    }).toString();
+  // URL base diferente para facturas vs otros documentos
+  const isFactura = documento.tipo === 'Factura';
+  const baseUrl = isFactura 
+    ? 'http://localhost:3000/descargar-archivo' 
+    : 'http://localhost:3000/Hs_Anx';
 
-    window.open(`http://localhost:3000/descargar-archivo?${params}`, '_blank');
+  const params = new URLSearchParams({
+    nombreCarpeta: this.carpetaNombre,
+    nombreArchivo: `${documento.tipo}_${id}`,
+    institucionId: this.loginData.institucion.id_institucion,
+    idUser: this.loginData.usuario.id_usuario,
+    eps: this.epsSeleccionada
+  });
+
+  // Agregar el parámetro correcto según el tipo de documento
+  switch (documento.tipo) {
+    case 'Factura':
+      params.append('idFactura', id);
+      break;
+    case 'Historia Clínica':
+      params.append('idsHistorias', id);
+      break;
+    case 'Evolución':
+      params.append('idsEvoluciones', id);
+      break;
+    case 'Nota de Enfermería':
+      params.append('idsNotasEnfermeria', id);
+      break;
+    case 'Orden Médica':
+      params.append('idsOrdenMedicas', id);
+      break;
+    case 'Admisión':
+      params.append('idsAdmisiones', id);
+      break;
+    case 'Egreso':
+      params.append('idEgresos', id);
+      break;
+    case 'Anexo 2':
+      params.append('idAnexosDos', id);
+      break;
+    default:
+      console.warn('❗ Tipo de documento no reconocido:', documento.tipo);
+      this.status = `❌ No se puede descargar el tipo de documento: ${documento.tipo}`;
+      this.isError = true;
+      this.requestUpdate();
+      return;
   }
 
+  // Abrir la URL con los parámetros correctos
+  window.open(`${baseUrl}?${params.toString()}`, '_blank');
+}
   cancelarDescarga() {
     this.mostrarConfirmacion = false;
     this.status = '🚫 Descarga cancelada por el usuario';
@@ -694,3 +531,4 @@ class DescargarArchivos extends LitElement {
 }
 
 customElements.define('descargar-archivos', DescargarArchivos);
+

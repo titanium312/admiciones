@@ -4,57 +4,54 @@ const path = require('path');
 
 async function descargarArchivo(req, res) {
   try {
-    const { idFactura, nombreArchiv, nombreCarpeta } = req.query;
+    const { idFactura, nombreArchivo, nombreCarpeta, institucionId, idUser, eps } = req.query;
 
-    // Validación de los parámetros necesarios
-    if (!idFactura || !nombreArchiv) {
-      return res.status(400).send('❌ El parámetro idFactura y nombreArchiv son requeridos');
+    // Validar parámetros obligatorios
+    if (!idFactura || !nombreArchivo || !nombreCarpeta || !institucionId || !idUser || !eps) {
+      return res.status(400).send('❌ Faltan parámetros obligatorios (idFactura, nombreArchivo, nombreCarpeta, institucionId, idUser, eps)');
     }
 
-    // URL del servicio de descarga
+    // URL del servicio externo para obtener la URL del ZIP de la factura
     const url = `https://server-01.saludplus.co/facturasAdministar/GetZipFile?IdFactura=${idFactura}`;
 
-    // Realizamos la solicitud con axios para obtener la URL del archivo
+    // Obtener info de la factura (incluye la URL del archivo)
     const response = await axios.get(url);
 
-    // Verificar que la respuesta sea válida
     if (response.data.valorRetorno !== 1) {
       return res.status(400).send('❌ Error al obtener la información de la factura');
     }
 
-    // Obtener la URL del archivo de la respuesta
     const archivoUrl = response.data.archivo;
     if (!archivoUrl) {
       return res.status(400).send('❌ No se encontró la URL del archivo en la respuesta');
     }
 
-    // Verificar y crear el directorio de descarga si no existe
+    // Crear carpeta para guardar el archivo, con ruta estructurada
     const downloadDir = path.resolve(__dirname, `../descargas/descarga/${nombreCarpeta}/Factura Electronica`);
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    // Realizamos la descarga del archivo desde la URL proporcionada
+    // Descargar el archivo ZIP desde archivoUrl
     const archivoResponse = await axios.get(archivoUrl, { responseType: 'stream' });
 
-    // Ruta donde se guardará el archivo
-    const filePath = path.join(downloadDir, `${nombreArchiv}.zip`);
-    const writer = fs.createWriteStream(filePath);
+    // Ruta completa para guardar el archivo
+    const filePath = path.join(downloadDir, `${nombreArchivo}.zip`);
 
-    // Guardamos el archivo en el disco
+    const writer = fs.createWriteStream(filePath);
     archivoResponse.data.pipe(writer);
 
-    // Esperar a que termine de guardar el archivo
+    // Esperar a que termine la descarga
     await new Promise((resolve, reject) => {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
 
-    // Responder con la ruta del archivo guardado y el nombre del archivo
+    // Responder con la ruta y nombre del archivo descargado
     res.json({
       mensaje: '✅ Archivo descargado correctamente',
       archivo: filePath,
-      nombreArchivo: `${nombreArchiv}.zip`  // Aquí agregamos la extensión .zip
+      nombreArchivo: `${nombreArchivo}.zip`
     });
 
   } catch (error) {

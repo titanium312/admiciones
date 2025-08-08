@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import './documento-admicion.js';  // Adjust the path & filename if needed
+import './admicions/documento-admicion.js';  // Adjust the path & filename if needed
 import "./Informe.js"
 class main extends LitElement {
   static properties = {
@@ -25,7 +25,7 @@ class main extends LitElement {
   render() {
     return html`
       <h3>Datos recibidos en link-url:</h3>
-      <descargar-archivos .loginData=${this.loginData}></documento-admicion>
+      <descargar-archivos .loginData=${this.loginData}></descargar-archivos>
 
     `;
   }

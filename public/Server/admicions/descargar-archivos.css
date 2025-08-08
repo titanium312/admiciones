@@ -1,0 +1,212 @@
+/* Estilos base */
+:host {
+  display: block;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+}
+
+h1 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* Inputs y selects */
+input, select {
+  padding: 10px 15px;
+  margin: 5px 10px 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  width: 250px;
+}
+
+.error-input {
+  border-color: #e74c3c;
+  background-color: #fde8e8;
+}
+
+/* Botones */
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 4px;
+  background-color: #3498db;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+button:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+button:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  background-color: #e74c3c;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+.button-group {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Loader y status */
+.loader {
+  text-align: center;
+  padding: 15px;
+  font-size: 18px;
+  color: #7f8c8d;
+}
+
+.status {
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.status.success {
+  background-color: #d5f5e3;
+  color: #27ae60;
+}
+
+.status.error {
+  background-color: #fadbd8;
+  color: #e74c3c;
+}
+
+/* Confirmación */
+.confirm-dialog {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.confirm-dialog p {
+  margin-top: 0;
+  text-align: center;
+}
+
+.confirm-options {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.option-delete {
+  background-color: #e74c3c;
+}
+
+.option-keep {
+  background-color: #2ecc71;
+}
+
+.option-cancel {
+  background-color: #95a5a6;
+}
+
+/* Info paciente */
+.paciente-info {
+  background-color: #eaf2f8;
+  padding: 15px;
+  border-radius: 4px;
+  margin: 20px 0;
+}
+
+.paciente-info h3 {
+  margin-top: 0;
+  color: #2980b9;
+}
+
+/* Lista de documentos */
+.documentos-container {
+  margin: 30px 0;
+}
+
+.documentos-container h3 {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  color: #2c3e50;
+}
+
+.select-all {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.documento-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin: 5px 0;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.documento-item:hover {
+  background-color: #f0f0f0;
+}
+
+.documento-checkbox {
+  margin-right: 10px;
+}
+
+.documento-info {
+  margin-right: 15px;
+}
+
+.documento-btn {
+  padding: 5px 10px;
+  font-size: 14px;
+  background-color: #16a085;
+}
+
+.documento-btn:hover:not(:disabled) {
+  background-color: #1abc9c;
+}
+
+/* Detalles JSON */
+details {
+  margin: 20px 0;
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 5px;
+}
+
+details pre {
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
