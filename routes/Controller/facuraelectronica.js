@@ -4,11 +4,11 @@ const path = require('path');
 
 async function descargarArchivo(req, res) {
   try {
-    const { idFactura, nombreArchivo, nombreCarpeta, institucionId, idUser, eps } = req.query;
+    const { idFactura, nombreArchivo, institucionId, idUser, eps, idAdmision } = req.query;
 
     // Validar parámetros obligatorios
-    if (!idFactura || !nombreArchivo || !nombreCarpeta || !institucionId || !idUser || !eps) {
-      return res.status(400).send('❌ Faltan parámetros obligatorios (idFactura, nombreArchivo, nombreCarpeta, institucionId, idUser, eps)');
+    if (!idFactura || !nombreArchivo || !institucionId || !idUser || !eps || !idAdmision) {
+      return res.status(400).send('❌ Faltan parámetros obligatorios (idFactura, nombreArchivo, institucionId, idUser, eps, idAdmision)');
     }
 
     // URL del servicio externo para obtener la URL del ZIP de la factura
@@ -26,8 +26,8 @@ async function descargarArchivo(req, res) {
       return res.status(400).send('❌ No se encontró la URL del archivo en la respuesta');
     }
 
-    // Crear carpeta para guardar el archivo, con ruta estructurada
-    const downloadDir = path.resolve(__dirname, `../descargas/descarga/${nombreCarpeta}/Factura Electronica`);
+    // Crear carpeta para guardar el archivo con estructura: descarga/idUser/idAdmision
+    const downloadDir = path.resolve(__dirname, `../descargas/${idUser}/${idAdmision}`);
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
@@ -41,13 +41,11 @@ async function descargarArchivo(req, res) {
     const writer = fs.createWriteStream(filePath);
     archivoResponse.data.pipe(writer);
 
-    // Esperar a que termine la descarga
     await new Promise((resolve, reject) => {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
 
-    // Responder con la ruta y nombre del archivo descargado
     res.json({
       mensaje: '✅ Archivo descargado correctamente',
       archivo: filePath,

@@ -1,3 +1,5 @@
+// Archivo: routes/tuRuta.js (o donde tengas la función principal)
+
 const { createToken } = require('./Base/toke');
 const { descargarYRenombrarConPrefijo } = require('../descargas/descargas');
 
@@ -23,24 +25,22 @@ function obtenerNombrePorEPS(eps, nombreBase) {
       prefacturas: "PrefacturasOtraEPS",
       ordenmedica: "OrdenMedicaOtraEPS",
     }
-    // Puedes agregar más EPS y sus nombres aquí
   };
 
   const epsNombres = nombresPorEPS[eps] || {};
-  // Siempre convierte a minúsculas para buscar
   return epsNombres[nombreBase.toLowerCase()] || nombreBase;
 }
 
 async function Hs_Anx(req, res) {
   try {
-    const { institucionId, idUser, nombreCarpeta, nombreArchivo, eps } = req.query;
+    const { idAdmision, institucionId, idUser, eps } = req.query;
 
+    // Validar parámetros requeridos
     const missingParams = [];
+    if (!idAdmision) missingParams.push('idAdmision');
     if (!institucionId) missingParams.push('institucionId');
     if (!idUser) missingParams.push('idUser');
-    if (!nombreCarpeta) missingParams.push('nombreCarpeta');
-    if (!nombreArchivo) missingParams.push('nombreArchivo');
-    if (!eps) missingParams.push('eps');  // ahora eps también es requerido
+    if (!eps) missingParams.push('eps');
     
     if (missingParams.length > 0) {
       return res.status(400).send(`❌ Parámetros requeridos faltantes: ${missingParams.join(', ')}`);
@@ -82,15 +82,19 @@ async function Hs_Anx(req, res) {
             token
           });
           const url = `https://reportes.saludplus.co/view.aspx?${urlParams.toString()}`;
-          const nombreArchivoCompleto = `${nombreAUsar}-${nombreArchivo}.pdf`;
+
+          // Nombre del archivo: tipoDocumento-idDocumento.pdf
+          const nombreArchivoCompleto = `${nombreAUsar}-${id}.pdf`;
 
           try {
+            // Aquí pasamos idAdmision como "report" para la carpeta, y idUser como prefijo
             const rutaGuardada = await descargarYRenombrarConPrefijo(
               nombreArchivoCompleto,
               url,
-              report,
-              nombreCarpeta
+              idAdmision,
+              idUser
             );
+
             resultados.push({
               id,
               reporte: report,
@@ -122,8 +126,7 @@ async function Hs_Anx(req, res) {
         : '✅ Todos los archivos descargados correctamente',
       resultados,
       metadata: {
-        nombreBase: nombreArchivo,
-        carpetaDestino: nombreCarpeta,
+        carpetaAdmision: idAdmision,
         eps,
         total: resultados.length,
         exitosos: resultados.filter(r => r.status === 'success').length,

@@ -2,533 +2,754 @@ import { LitElement, html, css } from 'lit';
 
 class DescargarArchivos extends LitElement {
   static styles = css`
-
+    :host {
+      display: block;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    
+    textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #106ebe;
+    }
+    
+    button:disabled {
+      background-color: #888;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 4px;
+      border-left: 4px solid;
+    }
+    
+    .status.success {
+      background-color: #f0fff4;
+      border-color: #38a169;
+      color: #2f855a;
+    }
+    
+    .status.error {
+      background-color: #fff5f5;
+      border-color: #c53030;
+      color: #c53030;
+    }
+    
+    .status.info {
+      background-color: #ebf8ff;
+      border-color: #3182ce;
+      color: #2c5282;
+    }
+    
+    .status.warning {
+      background-color: #fffaf0;
+      border-color: #dd6b20;
+      color: #c05621;
+    }
+    
+    .tipo-docs {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .tipo-docs label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+    }
+    
+    .tipo-docs label:hover {
+      background-color: #e9ecef;
+    }
+    
+    .tipo-docs input {
+      margin-right: 8px;
+    }
+    
+    .progress-container {
+      margin-top: 15px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      height: 10px;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background-color: #0078d4;
+      transition: width 0.3s ease;
+    }
+    
+    .resultados-descarga {
+      margin-top: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .resultado-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .resultado-item:last-child {
+      border-bottom: none;
+    }
+    
+    .resultado-item.success {
+      background-color: #f0fff4;
+    }
+    
+    .resultado-item.error {
+      background-color: #fff5f5;
+    }
+    
+    .resultado-item.warning {
+      background-color: #fffaf0;
+    }
+    
+    .summary {
+      margin-top: 15px;
+      font-weight: bold;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    
+    .retry-btn {
+      margin-left: 10px;
+      padding: 2px 8px;
+      font-size: 12px;
+      background-color: #e53e3e;
+    }
+    
+    .retry-btn:hover {
+      background-color: #c53030;
+    }
   `;
 
   static properties = {
-    carpeta: { type: String },
-    admisionesData: { type: Object },
     isLoading: { type: Boolean },
     status: { type: String },
-    isError: { type: Boolean },
-    documentos: { type: Array },
+    statusType: { type: String }, // 'success', 'error', 'warning', 'info'
     loginData: { type: Object },
-    numeroAdmision: { type: String },
+    multipleAdmisiones: { type: String },
     epsSeleccionada: { type: String },
-    mostrarConfirmacion: { type: Boolean },
-    documentosSeleccionados: { type: Object }
+    tiposSeleccionados: { type: Array },
+    directorioDestino: { type: String },
+    progress: { type: Number },
+    totalAdmisiones: { type: Number },
+    resultadosDescarga: { type: Array },
+    admisionesConError: { type: Array },
+    showOnlyErrors: { type: Boolean }
   };
 
   constructor() {
     super();
-    this.admisionesData = null;
     this.isLoading = false;
     this.status = '';
-    this.isError = false;
-    this.documentos = [];
-    this.numeroAdmision = '';
-    this.epsSeleccionada = '';
-    this.mostrarConfirmacion = false;
-    this.documentosSeleccionados = {};
+    this.statusType = 'info';
     this.loginData = {
-      institucion: { id_institucion: 1 },
+      institucion: { id_institucion: 20 },
       usuario: { id_usuario: 6874 }
     };
+    this.multipleAdmisiones = '';
+    this.epsSeleccionada = '';
+    this.tiposSeleccionados = [];
+    this.directorioDestino = '';
+    this.progress = 0;
+    this.totalAdmisiones = 0;
+    this.resultadosDescarga = [];
+    this.admisionesConError = [];
+    this.showOnlyErrors = false;
   }
 
-  get carpetaNombre() {
-    return `descarga_${this.loginData.usuario.id_usuario}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+  toggleTipoSeleccionado(tipo) {
+    if (this.tiposSeleccionados.includes(tipo)) {
+      this.tiposSeleccionados = this.tiposSeleccionados.filter(t => t !== tipo);
+    } else {
+      this.tiposSeleccionados = [...this.tiposSeleccionados, tipo];
+    }
   }
 
-  async verificarCarpeta() {
+  async fetchWithRetry(url, options, retries = 3, delay = 1000) {
     try {
-      const response = await fetch(`http://localhost:3000/eiliminar?nombreCarpeta=${this.carpetaNombre}`);
+      const response = await fetch(url, options);
       
       if (!response.ok) {
-        const text = await response.text();
-        if (text.includes('no existe')) {
-          return { existe: false };
+        // Si es error 400 o 500, intentamos de nuevo
+        if (response.status >= 400 && retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.fetchWithRetry(url, options, retries - 1, delay * 1.5);
         }
-        throw new Error(text);
+        throw new Error(`HTTP ${response.status}`);
       }
       
-      const data = await response.json();
-      return { existe: true, data };
-      
+      return response;
     } catch (error) {
-      if (error.message.includes('confirmacion')) {
-        return { existe: true };
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.fetchWithRetry(url, options, retries - 1, delay * 1.5);
       }
-      return { existe: false };
+      throw error;
     }
   }
 
-  async eliminarCarpeta() {
+  async obtenerIdsDocumentos(numeroAdmision) {
     try {
-      const response = await fetch(`http://localhost:3000/eiliminar?nombreCarpeta=${this.carpetaNombre}&confirmacion=si`);
-      
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      
-      const data = await response.json();
-      return data.carpetaEliminada === this.carpetaNombre;
-      
-    } catch (error) {
-      console.error('Error eliminando carpeta:', error);
-      return false;
-    }
-  }
+      const body = {
+        id_institucion: this.loginData.institucion.id_institucion,
+        numeros_admision: [parseInt(numeroAdmision, 10)]
+      };
 
-  async obtenerAdmisiones() {
-    const admNum = parseInt(this.numeroAdmision, 10);
-
-    if (!this.numeroAdmision || isNaN(admNum)) {
-      this.status = 'Por favor ingresa un número de admisión válido.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
-    }
-
-    this.isLoading = true;
-    this.status = `Obteniendo datos para admisión ${this.numeroAdmision}...`;
-    this.isError = false;
-    this.documentos = [];
-    this.documentosSeleccionados = {};
-    this.mostrarConfirmacion = false;
-    this.requestUpdate();
-
-    try {
-      const response = await fetch('http://localhost:3000/api/admisiones', {
+      const resp = await this.fetchWithRetry('http://localhost:3000/api/admisiones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id_institucion: this.loginData.institucion.id_institucion,
-          numeros_admision: [admNum]
-        })
+        body: JSON.stringify(body)
       });
 
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      const data = await resp.json();
+      
+      if (!data.resultados || !data.resultados[numeroAdmision]) {
+        throw new Error(`No se encontraron datos para la admisión ${numeroAdmision}`);
       }
 
-      this.admisionesData = await response.json();
-      this.status = '✅ Datos obtenidos correctamente';
-
-      const admision = Object.values(this.admisionesData?.resultados || {})[0];
-      if (admision) {
-        // Organizamos los documentos por tipo
-        this.documentos = [
-          ...(admision.id_historia ? [{tipo: 'Historia Clínica', id: admision.id_historia}] : []),
-          ...(admision.evoluciones?.length ? admision.evoluciones.map(id => ({tipo: 'Evolución', id})) : []),
-          ...(admision.notas_enfermeria?.length ? admision.notas_enfermeria.map(id => ({tipo: 'Nota de Enfermería', id})) : []),
-          ...(admision.ordenes_medicas?.length ? admision.ordenes_medicas.map(id => ({tipo: 'Orden Médica', id})) : []),
-          ...(admision.id_admision ? [{tipo: 'Admisión', id: admision.id_admision}] : []),
-          ...(admision.id_egreso?.length ? admision.id_egreso.map(id => ({tipo: 'Egreso', id})) : []),
-          ...(admision.anexo2?.length ? admision.anexo2.map(id => ({tipo: 'Anexo 2', id})) : []),
-          ...(admision.facturas?.length ? admision.facturas.map(id => ({tipo: 'Factura', id})) : [])
-        ];
-        
-        // Marcamos todos como seleccionados por defecto
-        this.documentos.forEach(doc => {
-          this.documentosSeleccionados[doc.id] = true;
-        });
-      }
-
+      return data.resultados[numeroAdmision];
     } catch (error) {
-      console.error('Error:', error);
-      this.status = `❌ Error: ${error.message}`;
-      this.isError = true;
-    } finally {
-      this.isLoading = false;
-      this.requestUpdate();
+      console.error(`Error obteniendo IDs para admisión ${numeroAdmision}:`, error);
+      throw new Error(`No se pudieron obtener los IDs: ${error.message.replace(/^❌\s*/, '')}`);
     }
   }
 
-  toggleSeleccionDocumento(id) {
-    this.documentosSeleccionados[id] = !this.documentosSeleccionados[id];
-    this.requestUpdate();
-  }
-
-  toggleSeleccionTodos() {
-    const todosSeleccionados = this.estanTodosSeleccionados();
-    this.documentos.forEach(doc => {
-      this.documentosSeleccionados[doc.id] = !todosSeleccionados;
-    });
-    this.requestUpdate();
-  }
-
-  estanTodosSeleccionados() {
-    return this.documentos.every(doc => this.documentosSeleccionados[doc.id]);
-  }
-
-  async iniciarDescarga(eliminarExistente = false, soloSeleccionados = false) {
-    this.isLoading = true;
-    this.mostrarConfirmacion = false;
-    
+  async descargarArchivoIndividual(params, tipo) {
     try {
-      if (eliminarExistente) {
-        this.status = 'Eliminando carpeta existente...';
-        this.requestUpdate();
-        
-        const eliminado = await this.eliminarCarpeta();
-        if (!eliminado) {
-          throw new Error('No se pudo eliminar la carpeta existente');
-        }
+      // Validación mejorada de parámetros
+      const requiredParams = {
+        'Factura': ['idFactura', 'institucionId', 'idUser', 'eps', 'idAdmision'],
+        'Anexo 2': ['idAdmision', 'institucionId', 'idUser', 'eps', 'idAnexosDos'],
+        'default': ['institucionId', 'idUser', 'eps', 'idAdmision']
+      };
+      
+      const paramsRequeridos = requiredParams[tipo] || requiredParams.default;
+      const missingParams = paramsRequeridos.filter(p => !params[p]);
+      
+      if (missingParams.length > 0) {
+        throw new Error(`Faltan parámetros requeridos: ${missingParams.join(', ')}`);
       }
 
-      const admision = Object.values(this.admisionesData.resultados)[0];
-      const paciente = admision?.paciente;
+      const endpoint = tipo === 'Factura' ? 'descargar-archivo' : 'Hs_Anx';
+      const queryParams = new URLSearchParams(params);
+      const response = await this.fetchWithRetry(
+        `http://localhost:3000/${endpoint}?${queryParams.toString()}`
+      );
 
-      const nombreArchivo = `${paciente?.tipo_documento_paciente}_${paciente?.documento_paciente}`;
-      const eps = this.epsSeleccionada;
-
-      const params = new URLSearchParams({
-        institucionId: this.loginData.institucion.id_institucion,
-        idUser: this.loginData.usuario.id_usuario,
-        nombreCarpeta: this.carpetaNombre,
-        nombreArchivo,
-        eps
-      });
-
-      // Filtramos los documentos según selección
-      if (soloSeleccionados) {
-        const idsSeleccionados = this.documentos
-          .filter(doc => this.documentosSeleccionados[doc.id])
-          .map(doc => doc.id);
-        
-        if (idsSeleccionados.length === 0) {
-          throw new Error('No hay documentos seleccionados para descargar');
-        }
-
-        params.append('idsDocumentos', idsSeleccionados.join(','));
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('application/json')) {
+        data = await response.json();
       } else {
-        // Descargar todo como antes
-        if (admision.id_historia) params.append('idsHistorias', admision.id_historia);
-        if (admision.evoluciones?.length) params.append('idsEvoluciones', admision.evoluciones.join(','));
-        if (admision.notas_enfermeria?.length) params.append('idsNotasEnfermeria', admision.notas_enfermeria.join(','));
-        if (admision.ordenes_medicas?.length) params.append('idsOrdenMedicas', admision.ordenes_medicas.join(','));
-        if (admision.id_admision) params.append('idsAdmisiones', admision.id_admision);
-        if (admision.id_egreso?.length) params.append('idEgresos', admision.id_egreso.join(','));
-        if (admision.anexo2?.length) params.append('idAnexosDos', admision.anexo2.join(','));
-        if (admision.facturas?.length) params.append('idFacturas', admision.facturas.join(','));
+        const blob = await response.blob();
+        const filename = tipo === 'Factura' 
+          ? `factura_${params.idFactura}.zip` 
+          : `${tipo.toLowerCase().replace(/ /g, '_')}_${params.idAdmision}.pdf`;
+        
+        return {
+          success: true,
+          mensaje: 'Archivo descargado correctamente',
+          archivo: filename,
+          nombreArchivo: filename,
+          tipo,
+          id: params.idFactura || params.idAdmision
+        };
+      }
+      
+      if (data.error || data.mensaje?.includes('❌')) {
+        throw new Error(data.error || data.mensaje);
       }
 
-      const url = `http://localhost:3000/Hs_Anx?${params.toString()}`;
-      window.open(url, '_blank');
-
-      this.status = eliminarExistente 
-        ? '✅ Descarga completa iniciada (carpeta limpiada)' 
-        : soloSeleccionados
-          ? '✅ Descarga de documentos seleccionados iniciada'
-          : '✅ Descarga incremental iniciada (archivos existentes conservados)';
-
+      return {
+        success: true,
+        ...data,
+        tipo,
+        id: params.idFactura || params.idAdmision
+      };
     } catch (error) {
-      console.error('Error al descargar:', error);
-      this.status = `❌ Error al descargar: ${error.message}`;
-      this.isError = true;
+      console.error(`Error descargando ${tipo}:`, error);
+      return {
+        success: false,
+        mensaje: error.message,
+        tipo,
+        id: params.idFactura || params.idAdmision,
+        error: true
+      };
+    }
+  }
+
+  obtenerIdsPorTipo(idsData, tipo) {
+    switch(tipo) {
+      case 'Historia Clínica': return idsData.id_historia ? [idsData.id_historia] : [];
+      case 'Evolución': return idsData.evoluciones || [];
+      case 'Nota de Enfermería': return idsData.notas_enfermeria || [];
+      case 'Orden Médica': return idsData.ordenes_medicas || [];
+      case 'Egreso': return idsData.id_egreso ? [idsData.id_egreso] : [];
+      case 'Anexo 2': return idsData.anexo2 ? [idsData.anexo2] : [];
+      case 'Factura': return idsData.facturas || [];
+      case 'Admisión': return idsData.id_admision ? [idsData.id_admision] : [];
+      default: return [];
+    }
+  }
+
+  async descargarDocumentosParaAdmision(numeroAdmision) {
+    const tiposMapping = {
+      'Historia Clínica': { 
+        tipo: 'idsHistorias', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idsHistorias: id
+        })
+      },
+      'Evolución': { 
+        tipo: 'idsEvoluciones', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idsEvoluciones: id
+        })
+      },
+      'Nota de Enfermería': { 
+        tipo: 'idsNotasEnfermeria', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idsNotasEnfermeria: id
+        })
+      },
+      'Orden Médica': { 
+        tipo: 'idsOrdenMedicas', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idsOrdenMedicas: id
+        })
+      },
+      'Admisión': { 
+        tipo: 'idAdmisiones', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idAdmisiones: id
+        })
+      },
+      'Egreso': { 
+        tipo: 'idEgresos', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idEgresos: id
+        })
+      },
+      'Anexo 2': { 
+        tipo: 'idAnexosDos', 
+        endpoint: 'Hs_Anx',
+        params: (id, admisionId) => ({
+          idAdmision: admisionId,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idAnexosDos: id
+        })
+      },
+      'Factura': { 
+        tipo: 'idFacturas', 
+        endpoint: 'descargar-archivo',
+        params: (id, admisionId) => ({
+          idFactura: id,
+          nombreArchivo: `factura_${id}`,
+          institucionId: this.loginData.institucion.id_institucion,
+          idUser: this.loginData.usuario.id_usuario,
+          eps: this.epsSeleccionada,
+          idAdmision: admisionId
+        })
+      }
+    };
+
+    const resultados = [];
+    let idsData;
+
+    try {
+      idsData = await this.obtenerIdsDocumentos(numeroAdmision);
+      
+      // Validación más estricta de los datos recibidos
+      if (!idsData || typeof idsData !== 'object' || Object.keys(idsData).length === 0) {
+        throw new Error(`Datos incompletos para la admisión ${numeroAdmision}`);
+      }
+
+      // Verificar que tenemos al menos el ID de admisión
+      if (!idsData.id_admision) {
+        throw new Error(`No se encontró ID de admisión para ${numeroAdmision}`);
+      }
+
+      // Filtrar solo los tipos seleccionados que tienen datos
+      const tiposAProcesar = this.tiposSeleccionados.filter(tipo => {
+        const ids = this.obtenerIdsPorTipo(idsData, tipo);
+        return ids.length > 0;
+      });
+
+      if (tiposAProcesar.length === 0) {
+        throw new Error(`No se encontraron documentos de los tipos seleccionados para admisión ${numeroAdmision}`);
+      }
+
+      // Procesar cada tipo de documento
+      for (const tipo of tiposAProcesar) {
+        const config = tiposMapping[tipo];
+        const ids = this.obtenerIdsPorTipo(idsData, tipo);
+        
+        // Procesar cada ID individualmente para mejor trazabilidad
+        for (const id of ids) {
+          try {
+            const params = config.params(id, idsData.id_admision);
+            const resultado = await this.descargarArchivoIndividual(params, tipo);
+            
+            const resultadoConAdmision = {
+              ...resultado,
+              admision: numeroAdmision,
+              timestamp: new Date().toISOString()
+            };
+            
+            resultados.push(resultadoConAdmision);
+            this.resultadosDescarga = [...this.resultadosDescarga, resultadoConAdmision];
+            
+            if (!resultado.success) {
+              throw new Error(resultado.mensaje);
+            }
+          } catch (error) {
+            console.error(`Error procesando ${tipo} ${id} en admisión ${numeroAdmision}:`, error);
+            resultados.push({
+              success: false,
+              mensaje: error.message,
+              tipo,
+              id,
+              admision: numeroAdmision,
+              error: true,
+              timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+
+      if (resultados.filter(r => r.success).length === 0) {
+        throw new Error('No se pudo descargar ningún documento');
+      }
+
+      return {
+        success: true,
+        resultados,
+        metadata: {
+          total: resultados.length,
+          exitosos: resultados.filter(r => r.success).length,
+          fallidos: resultados.filter(r => !r.success).length
+        }
+      };
+    } catch (error) {
+      console.error(`Error general procesando admisión ${numeroAdmision}:`, error);
+      
+      // Si no pudimos obtener los IDs, agregamos un resultado de error
+      if (!idsData) {
+        this.resultadosDescarga = [...this.resultadosDescarga, {
+          success: false,
+          mensaje: error.message,
+          tipo: 'General',
+          admision: numeroAdmision,
+          error: true,
+          timestamp: new Date().toISOString()
+        }];
+      }
+      
+      throw new Error(`Admisión ${numeroAdmision}: ${error.message.replace('❌', '').trim()}`);
+    }
+  }
+
+  async descargarMultiplesAdmisiones() {
+    const ids = this.multipleAdmisiones
+      .split(/[\s,]+/)
+      .map(id => id.trim())
+      .filter(id => id && !isNaN(parseInt(id, 10)))
+      .filter((v, i, a) => a.indexOf(v) === i);
+
+    if (ids.length === 0) {
+      this.status = 'Debes ingresar al menos un ID de admisión válido.';
+      this.statusType = 'error';
+      return;
+    }
+
+    if (!this.epsSeleccionada) {
+      this.status = 'Debes seleccionar una EPS.';
+      this.statusType = 'error';
+      return;
+    }
+
+    if (this.tiposSeleccionados.length === 0) {
+      this.status = 'Debes seleccionar al menos un tipo de documento.';
+      this.statusType = 'error';
+      return;
+    }
+
+    this.isLoading = true;
+    this.statusType = 'info';
+    this.status = 'Preparando para descargar documentos...';
+    this.totalAdmisiones = ids.length;
+    this.progress = 0;
+    this.resultadosDescarga = [];
+    this.admisionesConError = [];
+
+    try {
+      let exitosos = 0;
+      let fallidos = 0;
+      let documentosTotales = 0;
+      let documentosExitosos = 0;
+
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        this.status = `Procesando admisión ${id} (${i+1}/${ids.length})...`;
+        this.progress = ((i + 1) / ids.length) * 100;
+        this.requestUpdate();
+
+        try {
+          const resultado = await this.descargarDocumentosParaAdmision(id);
+          
+          exitosos++;
+          documentosExitosos += resultado.metadata.exitosos;
+          documentosTotales += resultado.metadata.total;
+          
+          if (resultado.metadata.fallidos > 0) {
+            this.admisionesConError.push(id);
+            this.statusType = 'warning';
+          }
+          
+          this.status = `Admisión ${id} completada: ${resultado.metadata.exitosos} exitosos, ${resultado.metadata.fallidos} fallidos.`;
+        } catch (error) {
+          fallidos++;
+          this.admisionesConError.push(id);
+          this.statusType = 'warning';
+          this.status = `Error procesando admisión ${id}: ${error.message}`;
+        }
+
+        // Pequeña pausa entre admisiones para no saturar el servidor
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Resumen final
+      let resumen = `Proceso completado. `;
+      resumen += `Admisiones: ${exitosos} exitosas, ${fallidos} fallidas. `;
+      resumen += `Documentos: ${documentosExitosos} descargados de ${documentosTotales}.`;
+      
+      if (this.admisionesConError.length > 0) {
+        resumen += ` Admisiones con errores: ${this.admisionesConError.join(', ')}`;
+        this.statusType = fallidos === ids.length ? 'error' : 'warning';
+      } else {
+        this.statusType = 'success';
+      }
+      
+      this.status = resumen;
+    } catch (error) {
+      this.status = `Error general: ${error.message}`;
+      this.statusType = 'error';
     } finally {
       this.isLoading = false;
-      this.requestUpdate();
+      this.progress = 100;
     }
   }
 
-  async descargarSeleccionados() {
-    if (!this.admisionesData?.resultados) {
-      this.status = 'Primero debes obtener los datos de admisiones.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
+  async retryFailedDownloads() {
+    if (this.admisionesConError.length === 0) return;
+    
+    this.multipleAdmisiones = this.admisionesConError.join(', ');
+    this.admisionesConError = [];
+    await this.descargarMultiplesAdmisiones();
+  }
+
+  toggleShowOnlyErrors() {
+    this.showOnlyErrors = !this.showOnlyErrors;
+  }
+
+  renderResultados() {
+    if (this.resultadosDescarga.length === 0) return html``;
+    
+    // Filtrar resultados si solo queremos ver errores
+    const resultados = this.showOnlyErrors 
+      ? this.resultadosDescarga.filter(r => r.error || !r.success)
+      : this.resultadosDescarga;
+    
+    if (resultados.length === 0) {
+      return html`
+        <div class="status info">
+          No hay errores para mostrar. Todos los documentos se descargaron correctamente.
+        </div>
+      `;
     }
-
-    if (!this.epsSeleccionada) {
-      this.status = 'Debes seleccionar una EPS.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
-    }
-
-    const seleccionados = Object.values(this.documentosSeleccionados).filter(Boolean).length;
-    if (seleccionados === 0) {
-      this.status = 'Por favor selecciona al menos un documento para descargar.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
-    }
-
-    this.isLoading = true;
-    this.status = 'Preparando descarga de documentos seleccionados...';
-    this.isError = false;
-    this.requestUpdate();
-
-    try {
-      const { existe } = await this.verificarCarpeta();
-      
-      if (existe) {
-        this.status = '⚠️ Ya existe una carpeta con descargas previas. ¿Qué deseas hacer?';
-        this.mostrarConfirmacion = true;
-        this.isLoading = false;
-        return;
+    
+    // Agrupar por admisión para mejor organización
+    const resultadosPorAdmision = resultados.reduce((acc, resultado) => {
+      if (!acc[resultado.admision]) {
+        acc[resultado.admision] = [];
       }
-
-      await this.iniciarDescarga(false, true);
+      acc[resultado.admision].push(resultado);
+      return acc;
+    }, {});
+    
+    return html`
+      <div class="summary">
+        Mostrando ${resultados.length} de ${this.resultadosDescarga.length} resultados
+        <button 
+          class="retry-btn" 
+          @click=${this.retryFailedDownloads}
+          ?disabled=${this.admisionesConError.length === 0 || this.isLoading}>
+          Reintentar errores
+        </button>
+        <label style="margin-left: 15px;">
+          <input 
+            type="checkbox" 
+            .checked=${this.showOnlyErrors}
+            @change=${this.toggleShowOnlyErrors}>
+          Mostrar solo errores
+        </label>
+      </div>
       
-    } catch (error) {
-      console.error('Error:', error);
-      this.status = `❌ Error: ${error.message}`;
-      this.isError = true;
-      this.isLoading = false;
-    }
-  }
-
-  async descargarTodo() {
-    if (!this.admisionesData?.resultados) {
-      this.status = 'Primero debes obtener los datos de admisiones.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
-    }
-
-    if (!this.epsSeleccionada) {
-      this.status = 'Debes seleccionar una EPS.';
-      this.isError = true;
-      this.requestUpdate();
-      return;
-    }
-
-    this.isLoading = true;
-    this.status = 'Verificando carpeta de descargas...';
-    this.isError = false;
-    this.requestUpdate();
-
-    try {
-      const { existe } = await this.verificarCarpeta();
-      
-      if (existe) {
-        this.status = '⚠️ Ya existe una carpeta con descargas previas. ¿Qué deseas hacer?';
-        this.mostrarConfirmacion = true;
-        this.isLoading = false;
-        return;
-      }
-
-      await this.iniciarDescarga(false);
-      
-    } catch (error) {
-      console.error('Error:', error);
-      this.status = `❌ Error: ${error.message}`;
-      this.isError = true;
-      this.isLoading = false;
-    }
-  }
-
-descargarDocumento(id) {
-  const documento = this.documentos.find(doc => doc.id === id);
-  if (!documento) return;
-
-  // URL base diferente para facturas vs otros documentos
-  const isFactura = documento.tipo === 'Factura';
-  const baseUrl = isFactura 
-    ? 'http://localhost:3000/descargar-archivo' 
-    : 'http://localhost:3000/Hs_Anx';
-
-  const params = new URLSearchParams({
-    nombreCarpeta: this.carpetaNombre,
-    nombreArchivo: `${documento.tipo}_${id}`,
-    institucionId: this.loginData.institucion.id_institucion,
-    idUser: this.loginData.usuario.id_usuario,
-    eps: this.epsSeleccionada
-  });
-
-  // Agregar el parámetro correcto según el tipo de documento
-  switch (documento.tipo) {
-    case 'Factura':
-      params.append('idFactura', id);
-      break;
-    case 'Historia Clínica':
-      params.append('idsHistorias', id);
-      break;
-    case 'Evolución':
-      params.append('idsEvoluciones', id);
-      break;
-    case 'Nota de Enfermería':
-      params.append('idsNotasEnfermeria', id);
-      break;
-    case 'Orden Médica':
-      params.append('idsOrdenMedicas', id);
-      break;
-    case 'Admisión':
-      params.append('idsAdmisiones', id);
-      break;
-    case 'Egreso':
-      params.append('idEgresos', id);
-      break;
-    case 'Anexo 2':
-      params.append('idAnexosDos', id);
-      break;
-    default:
-      console.warn('❗ Tipo de documento no reconocido:', documento.tipo);
-      this.status = `❌ No se puede descargar el tipo de documento: ${documento.tipo}`;
-      this.isError = true;
-      this.requestUpdate();
-      return;
-  }
-
-  // Abrir la URL con los parámetros correctos
-  window.open(`${baseUrl}?${params.toString()}`, '_blank');
-}
-  cancelarDescarga() {
-    this.mostrarConfirmacion = false;
-    this.status = '🚫 Descarga cancelada por el usuario';
-    this.isError = true;
-    this.isLoading = false;
-  }
-
-  reset() {
-    this.numeroAdmision = '';
-    this.admisionesData = null;
-    this.documentos = [];
-    this.documentosSeleccionados = {};
-    this.epsSeleccionada = '';
-    this.status = '';
-    this.isError = false;
-    this.mostrarConfirmacion = false;
-    this.requestUpdate();
+      <div class="resultados-descarga">
+        ${Object.entries(resultadosPorAdmision).map(([admision, docs]) => html`
+          <h4>Admisión ${admision}</h4>
+          ${docs.map(item => html`
+            <div class="resultado-item ${item.error ? 'error' : item.success ? 'success' : 'warning'}">
+              <strong>${item.tipo || 'Documento'}:</strong> ${item.nombreArchivo || item.id || 'N/A'}<br>
+              <small>${item.mensaje || (item.success ? 'Descargado correctamente' : 'Estado desconocido')}</small>
+              ${item.error ? html`<small style="color: red;">❌ Error</small>` : ''}
+              ${item.success ? html`<small style="color: green;">✓ Éxito</small>` : ''}
+            </div>
+          `)}
+        `)}
+      </div>
+    `;
   }
 
   render() {
-    const inputError = this.isError && (!this.numeroAdmision || isNaN(parseInt(this.numeroAdmision, 10)));
-    const admision = Object.values(this.admisionesData?.resultados || {})[0];
-    const paciente = admision?.paciente;
-    const todosSeleccionados = this.estanTodosSeleccionados();
-
     return html`
-      <h1>Descargar Archivos</h1>
+      <h1>Descargar Documentos de Admisión</h1>
 
-      <input
-        class="${inputError ? 'error-input' : ''}"
-        type="text"
-        .value=${this.numeroAdmision}
-        @input=${e => this.numeroAdmision = e.target.value}
-        placeholder="Ingresa número de admisión"
-        ?disabled=${this.isLoading}
-      />
-
-      <select 
-        .value=${this.epsSeleccionada}
-        @change=${e => this.epsSeleccionada = e.target.value}
-        ?disabled=${this.isLoading}>
-        <option value="">Seleccione EPS</option>
-        <option value="NUEVA_EPS">NUEVA_EPS</option>
-        <option value="OTRA_EPS">OTRA_EPS</option>
-      </select>
-
-      <div class="button-group">
-        <button 
-          @click=${this.obtenerAdmisiones} 
-          ?disabled=${this.isLoading || !this.numeroAdmision}>
-          Obtener Datos
-        </button>
-
-        <button 
-          @click=${this.descargarTodo} 
-          ?disabled=${this.isLoading || !this.admisionesData}>
-          Descargar Todo
-        </button>
-
-        <button 
-          @click=${this.descargarSeleccionados} 
-          ?disabled=${this.isLoading || !this.admisionesData}>
-          Descargar Selección
-        </button>
-
-        <button 
-          class="reset-btn"
-          @click=${this.reset}
-          ?disabled=${this.isLoading}>
-          Reiniciar
-        </button>
+      <div>
+        <label for="admisiones">IDs de Admisión (separados por comas o espacios):</label>
+        <textarea
+          id="admisiones"
+          placeholder="Ejemplo: 12345, 67890, 54321"
+          .value=${this.multipleAdmisiones}
+          @input=${e => this.multipleAdmisiones = e.target.value}
+          ?disabled=${this.isLoading}
+        ></textarea>
       </div>
 
-      ${this.isLoading ? html`<div class="loader">⏳ Procesando...</div>` : ''}
+      <div>
+        <label for="eps">EPS:</label>
+        <select 
+          id="eps"
+          .value=${this.epsSeleccionada}
+          @change=${e => this.epsSeleccionada = e.target.value}
+          ?disabled=${this.isLoading}>
+          <option value="">Seleccione EPS</option>
+          <option value="NUEVA_EPS">NUEVA EPS</option>
+          <option value="SURA">SURA</option>
+          <option value="COOMEVA">COOMEVA</option>
+          <option value="SANITAS">SANITAS</option>
+          <option value="OTRA">Otra EPS</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tipos de Documentos a Descargar:</label>
+        <div class="tipo-docs">
+          ${['Historia Clínica', 'Evolución', 'Nota de Enfermería', 'Orden Médica', 'Admisión', 'Egreso', 'Anexo 2', 'Factura'].map(tipo => html`
+            <label>
+              <input 
+                type="checkbox" 
+                .checked=${this.tiposSeleccionados.includes(tipo)}
+                @change=${() => this.toggleTipoSeleccionado(tipo)}
+                ?disabled=${this.isLoading}
+              >
+              ${tipo}
+            </label>
+          `)}
+        </div>
+      </div>
+
+      <button 
+        @click=${this.descargarMultiplesAdmisiones} 
+        ?disabled=${this.isLoading || !this.multipleAdmisiones || !this.epsSeleccionada || this.tiposSeleccionados.length === 0}>
+        ${this.isLoading ? 'Descargando...' : 'Iniciar Descargas'}
+      </button>
+
+      ${this.totalAdmisiones > 0 ? html`
+        <div class="progress-container">
+          <div class="progress-bar" style="width: ${this.progress}%"></div>
+        </div>
+      ` : ''}
 
       ${this.status ? html`
-        <div class="status ${this.isError ? 'error' : 'success'}">
+        <div class="status ${this.statusType}">
           ${this.status}
         </div>
       ` : ''}
 
-      ${this.mostrarConfirmacion ? html`
-        <div class="confirm-dialog">
-          <p>${this.status}</p>
-          <div class="confirm-options">
-            <button class="option-delete" @click=${() => this.iniciarDescarga(true)}>
-              Eliminar y descargar todo
-            </button>
-            <button class="option-keep" @click=${() => this.iniciarDescarga(false)}>
-              Conservar y descargar faltantes
-            </button>
-            <button class="option-cancel" @click=${this.cancelarDescarga}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      ` : ''}
-
-      ${paciente ? html`
-        <div class="paciente-info">
-          <h3>Datos del Paciente</h3>
-          <p><strong>Nombre:</strong> ${paciente.nombre1_paciente} ${paciente.nombre2_paciente || ''} ${paciente.apellido1_paciente} ${paciente.apellido2_paciente || ''}</p>
-          <p><strong>Documento:</strong> ${paciente.tipo_documento_paciente} ${paciente.documento_paciente}</p>
-        </div>
-      ` : ''}
-
-      ${this.documentos.length > 0 ? html`
-        <div class="documentos-container">
-          <h3>Documentos Disponibles</h3>
-          
-          <div class="select-all">
-            <input 
-              type="checkbox" 
-              id="select-all"
-              .checked=${todosSeleccionados}
-              @change=${this.toggleSeleccionTodos}
-              ?disabled=${this.isLoading}
-            >
-            <label for="select-all">Seleccionar todos</label>
-          </div>
-          
-          ${this.documentos.map(doc => html`
-            <div class="documento-item">
-              <label>
-                <input 
-                  type="checkbox" 
-                  class="documento-checkbox"
-                  .checked=${!!this.documentosSeleccionados[doc.id]}
-                  @change=${() => this.toggleSeleccionDocumento(doc.id)}
-                  ?disabled=${this.isLoading}
-                >
-                <span class="documento-info">${doc.tipo} (ID: ${doc.id})</span>
-              </label>
-              <button 
-                class="documento-btn" 
-                @click=${() => this.descargarDocumento(doc.id)}
-                ?disabled=${this.isLoading}>
-                Descargar
-              </button>
-            </div>
-          `)}
-        </div>
-      ` : ''}
-
-      ${this.admisionesData ? html`
-        <details>
-          <summary>Ver datos completos de admisión</summary>
-          <pre>${JSON.stringify(this.admisionesData, null, 2)}</pre>
-        </details>
-      ` : ''}
+      ${this.renderResultados()}
     `;
   }
 }
 
 customElements.define('descargar-archivos', DescargarArchivos);
-
